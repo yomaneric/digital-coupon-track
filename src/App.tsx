@@ -120,8 +120,8 @@ function App() {
   }
 
   const handleToggleUsed = (couponId: string, variantId: string) => {
-    setCoupons((current) =>
-      (current || []).map((coupon) =>
+    setCoupons((current) => {
+      const updated = (current || []).map((coupon) =>
         coupon.id === couponId
           ? {
               ...coupon,
@@ -138,7 +138,16 @@ function App() {
             }
           : coupon
       )
-    )
+      
+      if (selectedCoupon?.id === couponId) {
+        const updatedCoupon = updated.find((c) => c.id === couponId)
+        if (updatedCoupon) {
+          setSelectedCoupon(updatedCoupon)
+        }
+      }
+      
+      return updated
+    })
   }
 
   const handleChatBotAddCoupon = (data: CouponFormData) => {
