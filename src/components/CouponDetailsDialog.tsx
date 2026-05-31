@@ -5,6 +5,7 @@ import { PencilSimple, LinkSimple, Storefront, Tag, Clock, Warning, Ticket, Copy
 import type { Coupon } from '@/lib/types'
 import { getExpirationStatus, formatExpirationDate } from '@/lib/utils'
 import { toast } from 'sonner'
+import { motion } from 'framer-motion'
 
 interface CouponDetailsDialogProps {
   open: boolean
@@ -36,7 +37,16 @@ export function CouponDetailsDialog({
 
   const handleToggleUsed = (variantId: string, currentlyUsed: boolean) => {
     onToggleUsed(variantId)
-    toast.success(currentlyUsed ? 'Code marked as unused' : 'Code marked as used')
+    toast.success(
+      currentlyUsed ? '✓ Code marked as unused' : '✓ Code marked as used',
+      {
+        duration: 2000,
+        style: {
+          fontSize: '15px',
+          fontWeight: '600',
+        },
+      }
+    )
   }
 
   return (
@@ -80,9 +90,16 @@ export function CouponDetailsDialog({
                 const isUsed = variant.used || false
 
                 return (
-                  <div
+                  <motion.div
                     key={variant.id}
-                    className={`p-3 border rounded-lg space-y-3 relative ${
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ 
+                      opacity: 1, 
+                      scale: 1,
+                      transition: { duration: 0.2 }
+                    }}
+                    className={`p-3 border rounded-lg space-y-3 relative transition-all duration-300 ${
                       isUsed
                         ? 'border-border bg-muted/50 opacity-50'
                         : expirationStatus === 'expired'
@@ -98,10 +115,16 @@ export function CouponDetailsDialog({
                           Code #{index + 1}
                         </span>
                         {isUsed && (
-                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-muted text-muted-foreground">
+                          <motion.div
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0, opacity: 0 }}
+                            transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-green-500/20 text-green-700 border border-green-500/30"
+                          >
                             <CheckCircle size={12} weight="fill" />
                             <span>Used</span>
-                          </div>
+                          </motion.div>
                         )}
                       </div>
                       {variant.expiresAt && (
@@ -180,25 +203,30 @@ export function CouponDetailsDialog({
                       </p>
                     )}
 
-                    <Button
-                      onClick={() => handleToggleUsed(variant.id, isUsed)}
-                      variant={isUsed ? "outline" : "default"}
-                      size="sm"
-                      className="w-full h-8"
+                    <motion.div
+                      whileTap={{ scale: 0.95 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 17 }}
                     >
-                      {isUsed ? (
-                        <>
-                          <Circle size={14} weight="bold" className="mr-1.5" />
-                          Mark as Unused
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle size={14} weight="bold" className="mr-1.5" />
-                          Mark as Used
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                      <Button
+                        onClick={() => handleToggleUsed(variant.id, isUsed)}
+                        variant={isUsed ? "outline" : "default"}
+                        size="sm"
+                        className="w-full h-8 transition-all"
+                      >
+                        {isUsed ? (
+                          <>
+                            <Circle size={14} weight="bold" className="mr-1.5" />
+                            Mark as Unused
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle size={14} weight="bold" className="mr-1.5" />
+                            Mark as Used
+                          </>
+                        )}
+                      </Button>
+                    </motion.div>
+                  </motion.div>
                 )
               })}
             </div>
