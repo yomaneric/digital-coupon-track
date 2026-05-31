@@ -5,7 +5,7 @@ import { PencilSimple, LinkSimple, Storefront, Tag, Clock, Warning, Ticket, Copy
 import type { Coupon } from '@/lib/types'
 import { getExpirationStatus, formatExpirationDate } from '@/lib/utils'
 import { toast } from 'sonner'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface CouponDetailsDialogProps {
   open: boolean
@@ -114,18 +114,21 @@ export function CouponDetailsDialog({
                         <span className="text-xs font-bold text-muted-foreground">
                           Code #{index + 1}
                         </span>
-                        {isUsed && (
-                          <motion.div
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0, opacity: 0 }}
-                            transition={{ type: "spring", stiffness: 500, damping: 25 }}
-                            className="flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-green-500/20 text-green-700 border border-green-500/30"
-                          >
-                            <CheckCircle size={12} weight="fill" />
-                            <span>Used</span>
-                          </motion.div>
-                        )}
+                        <AnimatePresence mode="wait">
+                          {isUsed && (
+                            <motion.div
+                              key="used-badge"
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              exit={{ scale: 0, opacity: 0 }}
+                              transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                              className="flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-green-500/20 text-green-700 border border-green-500/30"
+                            >
+                              <CheckCircle size={12} weight="fill" />
+                              <span>Used</span>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                       {variant.expiresAt && (
                         <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${
@@ -211,19 +214,35 @@ export function CouponDetailsDialog({
                         onClick={() => handleToggleUsed(variant.id, isUsed)}
                         variant={isUsed ? "outline" : "default"}
                         size="sm"
-                        className="w-full h-8 transition-all"
+                        className="w-full h-8 transition-all overflow-hidden"
                       >
-                        {isUsed ? (
-                          <>
-                            <Circle size={14} weight="bold" className="mr-1.5" />
-                            Mark as Unused
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle size={14} weight="bold" className="mr-1.5" />
-                            Mark as Used
-                          </>
-                        )}
+                        <AnimatePresence mode="wait" initial={false}>
+                          {isUsed ? (
+                            <motion.div
+                              key="unused"
+                              initial={{ opacity: 0, y: -20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 20 }}
+                              transition={{ duration: 0.15 }}
+                              className="flex items-center"
+                            >
+                              <Circle size={14} weight="bold" className="mr-1.5" />
+                              Mark as Unused
+                            </motion.div>
+                          ) : (
+                            <motion.div
+                              key="used"
+                              initial={{ opacity: 0, y: -20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 20 }}
+                              transition={{ duration: 0.15 }}
+                              className="flex items-center"
+                            >
+                              <CheckCircle size={14} weight="bold" className="mr-1.5" />
+                              Mark as Used
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </Button>
                     </motion.div>
                   </motion.div>
