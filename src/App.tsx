@@ -13,8 +13,8 @@ import { getExpirationStatus } from '@/lib/utils'
 type FilterType = 'all' | ExpirationStatus
 
 function App() {
-  const [coupons, setCoupons] = useKV<Coupon[]>('coupons', [])
   const [passcode, setPasscode] = useKV<string | null>('app-passcode', null)
+  const [coupons, setCoupons] = useKV<Coupon[]>('coupons', [])
   const [isUnlocked, setIsUnlocked] = useState(false)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
