@@ -9,6 +9,8 @@ const { normalizeWalletCode, isValidWalletCode } = require('../walletCode')
 //   updatedAt    = last write time (ms) for simple last-write-wins semantics
 const TABLE_NAME = process.env.COUPONS_TABLE_NAME || 'coupons'
 const ROW_KEY = 'wallet'
+// Azure Table string properties are limited to 64 KiB; reject larger payloads.
+const MAX_COUPONS_SIZE_BYTES = 64 * 1024
 
 let tableClientPromise
 
@@ -46,14 +48,16 @@ function jsonResponse(status, body) {
   }
 }
 
-async function handleGet(client, walletCode) {
+async function handleGet(client, walletCode, context) {
   try {
     const entity = await client.getEntity(walletCode, ROW_KEY)
     let coupons = []
     try {
       const parsed = JSON.parse(entity.coupons || '[]')
       if (Array.isArray(parsed)) coupons = parsed
-    } catch {
+    } catch (parseErr) {
+      // Return a safe default but surface the corruption for diagnosis.
+      context.warn(`Stored coupons for wallet ${walletCode} are not valid JSON`, parseErr)
       coupons = []
     }
     return jsonResponse(200, { walletCode, coupons, updatedAt: entity.updatedAt })
@@ -80,8 +84,7 @@ async function handlePut(request, client, walletCode, context) {
   }
 
   const serialized = JSON.stringify(coupons)
-  // Azure Table string properties are limited to 64 KiB; guard against oversized payloads.
-  if (Buffer.byteLength(serialized, 'utf8') > 64 * 1024) {
+  if (Buffer.byteLength(serialized, 'utf8') > MAX_COUPONS_SIZE_BYTES) {
     return jsonResponse(413, { error: 'Coupon wallet is too large to store' })
   }
 
@@ -117,7 +120,7 @@ async function couponsHandler(request, context) {
 
   try {
     if (request.method === 'GET') {
-      return await handleGet(client, walletCode)
+      return await handleGet(client, walletCode, context)
     }
     return await handlePut(request, client, walletCode, context)
   } catch (err) {

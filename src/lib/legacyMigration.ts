@@ -5,18 +5,31 @@ import type { Coupon } from './types'
 // backend. This lets an existing wallet's coupons survive the move to the
 // server-backed model instead of appearing empty on the original device.
 
+function isCouponLike(value: unknown): boolean {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  // Accept both the current shape and the legacy pre-variants shape; both
+  // always carry an id and a merchant.
+  return typeof candidate.id === 'string' && typeof candidate.merchant === 'string'
+}
+
 function extractCouponArray(value: unknown): Coupon[] | null {
+  let array: unknown[] | null = null
   if (Array.isArray(value)) {
-    return value as Coupon[]
-  }
-  // Some persistence layers wrap the stored value, e.g. { value: [...] }.
-  if (value && typeof value === 'object') {
+    array = value
+  } else if (value && typeof value === 'object') {
+    // Some persistence layers wrap the stored value, e.g. { value: [...] }.
     const wrapped = (value as Record<string, unknown>).value
     if (Array.isArray(wrapped)) {
-      return wrapped as Coupon[]
+      array = wrapped
     }
   }
-  return null
+
+  if (!array) return null
+  // Only treat this as coupon data if every entry looks like a coupon, to avoid
+  // importing unrelated arrays that happen to share the key.
+  if (array.length === 0 || !array.every(isCouponLike)) return null
+  return array as Coupon[]
 }
 
 /**
