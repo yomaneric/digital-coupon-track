@@ -4,6 +4,8 @@ export interface CouponVariant {
   url?: string
   expiresAt?: number
   createdAt: number
+  used?: boolean
+  usedAt?: number
 }
 
 export interface Coupon {

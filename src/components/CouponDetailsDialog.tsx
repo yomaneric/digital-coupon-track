@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { PencilSimple, LinkSimple, Storefront, Tag, Clock, Warning, Ticket, Copy, Stack } from '@phosphor-icons/react'
+import { PencilSimple, LinkSimple, Storefront, Tag, Clock, Warning, Ticket, Copy, Stack, CheckCircle, Circle } from '@phosphor-icons/react'
 import type { Coupon } from '@/lib/types'
 import { getExpirationStatus, formatExpirationDate } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -11,6 +11,7 @@ interface CouponDetailsDialogProps {
   onOpenChange: (open: boolean) => void
   coupon: Coupon | null
   onEdit: () => void
+  onToggleUsed: (variantId: string) => void
 }
 
 export function CouponDetailsDialog({
@@ -18,6 +19,7 @@ export function CouponDetailsDialog({
   onOpenChange,
   coupon,
   onEdit,
+  onToggleUsed,
 }: CouponDetailsDialogProps) {
   if (!coupon) return null
 
@@ -30,6 +32,11 @@ export function CouponDetailsDialog({
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code)
     toast.success('Coupon code copied!')
+  }
+
+  const handleToggleUsed = (variantId: string, currentlyUsed: boolean) => {
+    onToggleUsed(variantId)
+    toast.success(currentlyUsed ? 'Code marked as unused' : 'Code marked as used')
   }
 
   return (
@@ -70,22 +77,33 @@ export function CouponDetailsDialog({
               {coupon.variants.map((variant, index) => {
                 const expirationStatus = getExpirationStatus(variant.expiresAt)
                 const isValidUrl = variant.url && (variant.url.startsWith('http://') || variant.url.startsWith('https://'))
+                const isUsed = variant.used || false
 
                 return (
                   <div
                     key={variant.id}
-                    className={`p-3 border rounded-lg space-y-3 ${
-                      expirationStatus === 'expired'
+                    className={`p-3 border rounded-lg space-y-3 relative ${
+                      isUsed
+                        ? 'border-border bg-muted/50 opacity-50'
+                        : expirationStatus === 'expired'
                         ? 'border-destructive/30 bg-destructive/5 opacity-60'
                         : expirationStatus === 'expiring-soon'
                         ? 'border-amber-500/30 bg-amber-500/5'
                         : 'border-border bg-muted/30'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-muted-foreground">
-                        Code #{index + 1}
-                      </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-muted-foreground">
+                          Code #{index + 1}
+                        </span>
+                        {isUsed && (
+                          <div className="flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-muted text-muted-foreground">
+                            <CheckCircle size={12} weight="fill" />
+                            <span>Used</span>
+                          </div>
+                        )}
+                      </div>
                       {variant.expiresAt && (
                         <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${
                           expirationStatus === 'expired'
@@ -161,6 +179,25 @@ export function CouponDetailsDialog({
                         Use this code soon before it expires!
                       </p>
                     )}
+
+                    <Button
+                      onClick={() => handleToggleUsed(variant.id, isUsed)}
+                      variant={isUsed ? "outline" : "default"}
+                      size="sm"
+                      className="w-full h-8"
+                    >
+                      {isUsed ? (
+                        <>
+                          <Circle size={14} weight="bold" className="mr-1.5" />
+                          Mark as Unused
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle size={14} weight="bold" className="mr-1.5" />
+                          Mark as Used
+                        </>
+                      )}
+                    </Button>
                   </div>
                 )
               })}

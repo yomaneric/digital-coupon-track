@@ -119,6 +119,28 @@ function App() {
     toast.success('Coupon deleted')
   }
 
+  const handleToggleUsed = (couponId: string, variantId: string) => {
+    setCoupons((current) =>
+      (current || []).map((coupon) =>
+        coupon.id === couponId
+          ? {
+              ...coupon,
+              variants: coupon.variants.map((variant) =>
+                variant.id === variantId
+                  ? {
+                      ...variant,
+                      used: !variant.used,
+                      usedAt: !variant.used ? Date.now() : undefined,
+                    }
+                  : variant
+              ),
+              updatedAt: Date.now(),
+            }
+          : coupon
+      )
+    )
+  }
+
   const handleChatBotAddCoupon = (data: CouponFormData) => {
     handleAddCoupon(data)
   }
@@ -279,6 +301,11 @@ function App() {
         onOpenChange={setIsDetailsOpen}
         coupon={selectedCoupon}
         onEdit={handleEditClick}
+        onToggleUsed={(variantId) => {
+          if (selectedCoupon) {
+            handleToggleUsed(selectedCoupon.id, variantId)
+          }
+        }}
       />
 
       <ChatBot

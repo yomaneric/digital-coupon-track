@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Trash, Storefront, Tag, Clock, Warning, Ticket, Stack } from '@phosphor-icons/react'
+import { Trash, Storefront, Tag, Clock, Warning, Ticket, Stack, CheckCircle } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import type { Coupon } from '@/lib/types'
 import { getCouponExpirationStatus, getExpirationStatus, formatExpirationDate } from '@/lib/utils'
@@ -23,6 +23,7 @@ export function CouponCard({ coupon, onClick, onDelete }: CouponCardProps) {
 
   const validVariants = coupon.variants.filter(v => getExpirationStatus(v.expiresAt) !== 'expired')
   const expiringSoonVariants = coupon.variants.filter(v => getExpirationStatus(v.expiresAt) === 'expiring-soon')
+  const usedVariants = coupon.variants.filter(v => v.used)
   const totalVariants = coupon.variants.length
 
   return (
@@ -63,6 +64,15 @@ export function CouponCard({ coupon, onClick, onDelete }: CouponCardProps) {
                 <div className="flex items-center gap-1.5 bg-green-500/10 px-2.5 py-1 rounded-md">
                   <span className="text-xs font-medium text-green-600">
                     {validVariants.length} valid
+                  </span>
+                </div>
+              )}
+              
+              {usedVariants.length > 0 && (
+                <div className="flex items-center gap-1.5 bg-muted px-2.5 py-1 rounded-md">
+                  <CheckCircle className="text-muted-foreground flex-shrink-0" size={12} weight="fill" />
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {usedVariants.length} used
                   </span>
                 </div>
               )}
