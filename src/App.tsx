@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
-import { Plus, Wallet } from '@phosphor-icons/react'
+import { Plus, Wallet, Robot } from '@phosphor-icons/react'
 import { Toaster, toast } from 'sonner'
 import type { Coupon, CouponFormData, ExpirationStatus } from '@/lib/types'
 import { CouponCard } from '@/components/CouponCard'
@@ -8,6 +8,7 @@ import { CouponFormDialog } from '@/components/CouponFormDialog'
 import { CouponDetailsDialog } from '@/components/CouponDetailsDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { PasscodeScreen } from '@/components/PasscodeScreen'
+import { ChatBot } from '@/components/ChatBot'
 import { getCouponExpirationStatus } from '@/lib/utils'
 
 type FilterType = 'all' | ExpirationStatus
@@ -21,6 +22,7 @@ function App() {
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null)
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null)
   const [filter, setFilter] = useState<FilterType>('all')
+  const [isChatBotOpen, setIsChatBotOpen] = useState(false)
 
   useEffect(() => {
     if (coupons && coupons.length > 0) {
@@ -116,6 +118,36 @@ function App() {
     setCoupons((current) => (current || []).filter((coupon) => coupon.id !== id))
     toast.success('Coupon deleted')
   }
+
+  const handleChatBotAddCoupon = (data: CouponFormData) => {
+    handleAddCoupon(data)
+  }
+
+  const handleChatBotUpdateCoupon = (id: string, data: CouponFormData) => {
+    setCoupons((current) =>
+      (current || []).map((coupon) =>
+        coupon.id === id
+          ? { ...coupon, ...data, updatedAt: Date.now() }
+          : coupon
+      )
+    )
+    toast.success('Coupon updated via chatbot!')
+  }
+
+  const simplifiedCoupons = useMemo(() => {
+    if (!coupons) return []
+    return coupons.map(coupon => {
+      const firstVariant = coupon.variants?.[0]
+      return {
+        id: coupon.id,
+        merchant: coupon.merchant,
+        value: coupon.value,
+        code: firstVariant?.code,
+        url: firstVariant?.url,
+        expiresAt: firstVariant?.expiresAt,
+      }
+    })
+  }, [coupons])
 
   const handleCardClick = (coupon: Coupon) => {
     setSelectedCoupon(coupon)
@@ -248,6 +280,23 @@ function App() {
         coupon={selectedCoupon}
         onEdit={handleEditClick}
       />
+
+      <ChatBot
+        isOpen={isChatBotOpen}
+        onClose={() => setIsChatBotOpen(false)}
+        onAddCoupon={handleChatBotAddCoupon}
+        onUpdateCoupon={handleChatBotUpdateCoupon}
+        onDeleteCoupon={handleDeleteCoupon}
+        coupons={simplifiedCoupons}
+      />
+
+      <button
+        onClick={() => setIsChatBotOpen(true)}
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all z-40"
+        aria-label="Open AI Assistant"
+      >
+        <Robot size={28} weight="bold" />
+      </button>
     </div>
   )
 }

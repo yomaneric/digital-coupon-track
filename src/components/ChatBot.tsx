@@ -80,7 +80,7 @@ export function ChatBot({
     addMessage('user', userInput)
 
     try {
-      const prompt = spark.llmPrompt`You are a CLI-like assistant for a coupon management app. Analyze the user's request and generate a structured command.
+      const promptText = `You are a CLI-like assistant for a coupon management app. Analyze the user's request and generate a structured command.
 
 Current coupons in the system:
 ${JSON.stringify(coupons, null, 2)}
@@ -154,7 +154,7 @@ Important rules:
 - Be helpful and conversational but structured
 - Always return valid JSON`
 
-      const response = await spark.llm(prompt, 'gpt-4o', true)
+      const response = await window.spark.llm(promptText, 'gpt-4o', true)
       const parsed = JSON.parse(response)
 
       if (parsed.missingFields && parsed.missingFields.length > 0) {
@@ -180,9 +180,13 @@ Important rules:
           const couponData: CouponFormData = {
             merchant: command.params.merchant,
             value: command.params.value,
-            code: command.params.code,
-            url: command.params.url,
-            expiresAt: command.params.expiresAt,
+            variants: [{
+              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+              code: command.params.code,
+              url: command.params.url,
+              expiresAt: command.params.expiresAt,
+              createdAt: Date.now(),
+            }],
           }
           onAddCoupon(couponData)
           addMessage(
@@ -212,21 +216,26 @@ Important rules:
             }
           }
 
-          const updateData: CouponFormData = {
-            merchant: command.params.merchant,
-            value: command.params.value,
+          const existingCoupon = coupons.find((c) => c.id === targetId)
+          
+          const firstVariant = existingCoupon ? {
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            code: command.params.code !== undefined ? command.params.code : existingCoupon.code,
+            url: command.params.url !== undefined ? command.params.url : existingCoupon.url,
+            expiresAt: command.params.expiresAt !== undefined ? command.params.expiresAt : existingCoupon.expiresAt,
+            createdAt: Date.now(),
+          } : {
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
             code: command.params.code,
             url: command.params.url,
             expiresAt: command.params.expiresAt,
+            createdAt: Date.now(),
           }
 
-          const existingCoupon = coupons.find((c) => c.id === targetId)
           const mergedData: CouponFormData = {
-            merchant: updateData.merchant || existingCoupon?.merchant || '',
-            value: updateData.value || existingCoupon?.value || '',
-            code: updateData.code !== undefined ? updateData.code : existingCoupon?.code,
-            url: updateData.url !== undefined ? updateData.url : existingCoupon?.url,
-            expiresAt: updateData.expiresAt !== undefined ? updateData.expiresAt : existingCoupon?.expiresAt,
+            merchant: command.params.merchant || existingCoupon?.merchant || '',
+            value: command.params.value || existingCoupon?.value || '',
+            variants: [firstVariant],
           }
 
           onUpdateCoupon(targetId, mergedData)
