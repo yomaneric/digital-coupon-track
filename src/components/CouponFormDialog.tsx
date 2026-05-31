@@ -91,7 +91,7 @@ export function CouponFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-space text-2xl">
             {isEdit ? 'Edit Coupon' : 'Add New Coupon'}
