@@ -7,17 +7,38 @@ import { CouponCard } from '@/components/CouponCard'
 import { CouponFormDialog } from '@/components/CouponFormDialog'
 import { CouponDetailsDialog } from '@/components/CouponDetailsDialog'
 import { EmptyState } from '@/components/EmptyState'
+import { PasscodeScreen } from '@/components/PasscodeScreen'
 import { getExpirationStatus } from '@/lib/utils'
 
 type FilterType = 'all' | ExpirationStatus
 
 function App() {
   const [coupons, setCoupons] = useKV<Coupon[]>('coupons', [])
+  const [passcode, setPasscode] = useKV<string | null>('app-passcode', null)
+  const [isUnlocked, setIsUnlocked] = useState(false)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null)
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null)
   const [filter, setFilter] = useState<FilterType>('all')
+
+  const handleSetPasscode = (newPasscode: string) => {
+    setPasscode(newPasscode)
+  }
+
+  const handleUnlock = () => {
+    setIsUnlocked(true)
+  }
+
+  if (!isUnlocked) {
+    return (
+      <PasscodeScreen
+        onUnlock={handleUnlock}
+        storedPasscode={passcode ?? null}
+        onSetPasscode={handleSetPasscode}
+      />
+    )
+  }
 
   const handleAddCoupon = (data: CouponFormData) => {
     const newCoupon: Coupon = {

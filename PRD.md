@@ -12,6 +12,13 @@ This is a straightforward CRUD application with persistent storage, but includes
 
 ## Essential Features
 
+### Passcode Protection
+- **Functionality**: Requires users to set and enter a passcode before accessing their coupon wallet
+- **Purpose**: Protect sensitive coupon codes and personal discount information from unauthorized access
+- **Trigger**: Every time the app is opened or page is refreshed
+- **Progression**: Open app → Passcode screen appears → First time: Create passcode + confirm passcode → Subsequent visits: Enter passcode → Access granted to main app
+- **Success criteria**: Passcode persists securely, incorrect passcode shows error with shake animation, successful unlock provides immediate access to coupons
+
 ### Add New Coupon
 - **Functionality**: Creates a new coupon entry with merchant name, value/discount, URL/QR code, and optional expiration date
 - **Purpose**: Allows users to save coupons they receive via email, websites, or apps and track when they expire
@@ -49,6 +56,7 @@ This is a straightforward CRUD application with persistent storage, but includes
 
 ## Edge Case Handling
 
+- **Forgotten Passcode** - Show warning during setup that there is no recovery option; passcode is stored locally and cannot be reset without losing data
 - **Empty State** - Show welcoming illustration and clear "Add your first coupon" prompt when no coupons exist
 - **Invalid URLs** - Accept any text input; generate QR code from whatever is provided (could be a code, not just URL)
 - **Long Merchant Names** - Truncate with ellipsis in card view, show full name in details
@@ -95,16 +103,18 @@ Animations should reinforce the tactile, card-based nature of the interface whil
 ## Component Selection
 
 - **Components**:
+  - **Passcode Screen**: Full-screen lock screen with centered input for passcode entry and setup
   - **Card**: Primary container for coupon entries in list view, with hover/tap states and expiration indicators
   - **Dialog**: Full-screen on mobile for add/edit forms and coupon details
   - **Sheet**: Alternative for detail view that slides up from bottom
-  - **Button**: Primary actions (Add, Save, Delete) with loading states
-  - **Input**: Text fields for merchant, value, URL with clear labels; date input for expiration
+  - **Button**: Primary actions (Add, Save, Delete, Unlock) with loading states
+  - **Input**: Text fields for merchant, value, URL, passcode with clear labels; date input for expiration
   - **Textarea**: For longer URLs or notes field
   - **Alert Dialog**: Confirmation for destructive delete action
   - **Badge**: Display coupon value/discount prominently on cards; expiration status badges
   - **Separator**: Subtle dividers between form sections
 - **Customizations**:
+  - Passcode Screen: Custom full-screen component with large lock icon, password input with centered text, and shake animation on error
   - QR Code Generator: Custom component using `qrcode` library or canvas API
   - Coupon Card: Custom card component with swipe-to-delete gesture support and expiration visual indicators (corner flag, icon, colored text)
   - Empty State: Custom illustration and messaging component
@@ -116,6 +126,7 @@ Animations should reinforce the tactile, card-based nature of the interface whil
   - Inputs: Focused (purple border + subtle glow), Error (red border with shake animation), Valid (lime accent)
   - Date Input: Standard browser date picker with minimum date constraint
 - **Icon Selection**:
+  - Security: Lock for locked state, LockKey for setup
   - Add: Plus (bold weight) on floating action button
   - Edit: PencilSimple for edit actions
   - Delete: Trash for destructive actions
