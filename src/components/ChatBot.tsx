@@ -79,12 +79,20 @@ export function ChatBot({
     addMessage('user', userInput)
 
     try {
+      const conversationHistory = messages
+        .slice(-10)
+        .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+        .join('\n')
+
       const promptText = (window.spark.llmPrompt as any)`You are a CLI-like assistant for a coupon management app. Analyze the user's request and generate a structured command.
 
 Current coupons in the system:
 ${JSON.stringify(coupons, null, 2)}
 
-User request: "${userInput}"
+Previous conversation (last 10 messages):
+${conversationHistory}
+
+Current user request: "${userInput}"
 
 Your task:
 1. Determine the action: create, create_batch, update, delete, or list coupons
