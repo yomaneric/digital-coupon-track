@@ -19,12 +19,12 @@ This is a straightforward CRUD application with persistent storage, but includes
 - **Progression**: Tap robot icon → Chat overlay appears → Type natural language command (e.g., "Add a coupon for Target with 25% off") → AI analyzes request → If missing info, asks follow-up questions → Executes command → Confirms action in chat
 - **Success criteria**: AI correctly interprets user intent, asks clarifying questions when needed, executes CRUD operations accurately, provides friendly confirmations, maintains conversation context
 
-### Passcode Protection
-- **Functionality**: Requires users to set and enter a passcode before accessing their coupon wallet
-- **Purpose**: Protect sensitive coupon codes and personal discount information from unauthorized access
-- **Trigger**: Every time the app is opened or page is refreshed
-- **Progression**: Open app → Passcode screen appears → First time: Create passcode + confirm passcode → Subsequent visits: Enter passcode → Access granted to main app
-- **Success criteria**: Passcode persists securely, incorrect passcode shows error with shake animation, successful unlock provides immediate access to coupons
+### Coupon Wallet Access (Create / Join)
+- **Functionality**: Lets users create a wallet with a generated shareable code or join an existing wallet by entering a shared code
+- **Purpose**: Keep coupons organized by wallet code so the same code opens the same coupon set across sessions and devices
+- **Trigger**: First app load (no active wallet selected) or when user switches wallets from wallet controls
+- **Progression**: Open app → Wallet onboarding appears → Create new wallet (code generated) or join existing wallet (enter shared code) → Wallet code becomes active → Coupon list loads for that wallet namespace
+- **Success criteria**: Wallet code persists as active selection, join input validates format with friendly errors, copy/share flow is discoverable, switching wallet updates coupon namespace immediately
 
 ### Add New Coupon
 - **Functionality**: Creates a new coupon entry with merchant name, value/discount, URL/QR code, and optional expiration date
@@ -67,7 +67,7 @@ This is a straightforward CRUD application with persistent storage, but includes
 - **Chatbot Missing Information** - AI asks follow-up questions for required fields (merchant, value) before executing create commands
 - **Chatbot Merchant Matching** - When updating/deleting by merchant name, AI finds closest match from existing coupons; if multiple matches or no match found, lists options for user to clarify
 - **Chatbot Date Parsing** - Converts natural language dates ("December 31", "in 30 days", "next month") to timestamps for expiration dates
-- **Forgotten Passcode** - Show warning during setup that there is no recovery option; passcode is stored locally and cannot be reset without losing data
+- **Invalid Wallet Code** - Show friendly validation errors for malformed or empty wallet codes and keep user on wallet onboarding/manage flow until corrected
 - **Empty State** - Show welcoming illustration and clear "Add your first coupon" prompt when no coupons exist
 - **Invalid URLs** - Accept any text input; generate QR code from whatever is provided (could be a code, not just URL)
 - **Long Merchant Names** - Truncate with ellipsis in card view, show full name in details
@@ -114,18 +114,18 @@ Animations should reinforce the tactile, card-based nature of the interface whil
 ## Component Selection
 
 - **Components**:
-  - **Passcode Screen**: Full-screen lock screen with centered input for passcode entry and setup
+  - **Wallet Onboarding**: Full-screen create/join flow with generated wallet code display, copy action, and join input validation
   - **Card**: Primary container for coupon entries in list view, with hover/tap states and expiration indicators
   - **Dialog**: Full-screen on mobile for add/edit forms and coupon details
   - **Sheet**: Alternative for detail view that slides up from bottom
-  - **Button**: Primary actions (Add, Save, Delete, Unlock) with loading states
-  - **Input**: Text fields for merchant, value, URL, passcode with clear labels; date input for expiration
+  - **Button**: Primary actions (Add, Save, Delete, Create Wallet, Join Wallet) with loading states
+  - **Input**: Text fields for merchant, value, URL, wallet code with clear labels; date input for expiration
   - **Textarea**: For longer URLs or notes field
   - **Alert Dialog**: Confirmation for destructive delete action
   - **Badge**: Display coupon value/discount prominently on cards; expiration status badges
   - **Separator**: Subtle dividers between form sections
 - **Customizations**:
-  - Passcode Screen: Custom full-screen component with large lock icon, password input with centered text, and shake animation on error
+  - Wallet Onboarding: Custom full-screen component with wallet icon, create/join actions, and shake animation for validation errors
   - QR Code Generator: Custom component using `qrcode` library or canvas API
   - Coupon Card: Custom card component with swipe-to-delete gesture support and expiration visual indicators (corner flag, icon, colored text)
   - Empty State: Custom illustration and messaging component
@@ -139,7 +139,7 @@ Animations should reinforce the tactile, card-based nature of the interface whil
 - **Icon Selection**:
   - AI Assistant: Robot icon for chatbot button and chat messages
   - User: User icon for user messages in chat
-  - Security: Lock for locked state, LockKey for setup
+  - Wallet: Wallet icon for brand identity, wallet actions, and wallet management controls
   - Add: Plus (bold weight) on floating action button
   - Edit: PencilSimple for edit actions
   - Delete: Trash for destructive actions
