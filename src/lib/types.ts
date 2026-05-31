@@ -1,10 +1,16 @@
+export interface CouponVariant {
+  id: string
+  code?: string
+  url?: string
+  expiresAt?: number
+  createdAt: number
+}
+
 export interface Coupon {
   id: string
   merchant: string
   value: string
-  url?: string
-  code?: string
-  expiresAt?: number
+  variants: CouponVariant[]
   createdAt: number
   updatedAt: number
 }

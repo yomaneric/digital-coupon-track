@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useKV } from '@github/spark/hooks'
-import { Plus, Wallet, Robot } from '@phosphor-icons/react'
+import { Plus, Wallet } from '@phosphor-icons/react'
 import { Toaster, toast } from 'sonner'
 import type { Coupon, CouponFormData, ExpirationStatus } from '@/lib/types'
 import { CouponCard } from '@/components/CouponCard'
@@ -8,8 +8,7 @@ import { CouponFormDialog } from '@/components/CouponFormDialog'
 import { CouponDetailsDialog } from '@/components/CouponDetailsDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { PasscodeScreen } from '@/components/PasscodeScreen'
-import { ChatBot } from '@/components/ChatBot'
-import { getExpirationStatus } from '@/lib/utils'
+import { getCouponExpirationStatus } from '@/lib/utils'
 
 type FilterType = 'all' | ExpirationStatus
 
@@ -22,14 +21,40 @@ function App() {
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null)
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null)
   const [filter, setFilter] = useState<FilterType>('all')
-  const [isChatBotOpen, setIsChatBotOpen] = useState(false)
+
+  useEffect(() => {
+    if (coupons && coupons.length > 0) {
+      const needsMigration = coupons.some((c: any) => !c.variants)
+      if (needsMigration) {
+        const migratedCoupons = coupons.map((c: any) => {
+          if (c.variants) return c
+          
+          return {
+            id: c.id,
+            merchant: c.merchant,
+            value: c.value,
+            variants: [{
+              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+              code: c.code,
+              url: c.url,
+              expiresAt: c.expiresAt,
+              createdAt: c.createdAt || Date.now(),
+            }],
+            createdAt: c.createdAt || Date.now(),
+            updatedAt: c.updatedAt || Date.now(),
+          }
+        })
+        setCoupons(migratedCoupons)
+      }
+    }
+  }, [])
 
   const filteredCoupons = useMemo(() => {
     if (!coupons || coupons.length === 0) return []
     if (filter === 'all') return coupons
 
     return coupons.filter((coupon) => {
-      const status = getExpirationStatus(coupon.expiresAt)
+      const status = getCouponExpirationStatus(coupon)
       return status === filter
     })
   }, [coupons, filter])
@@ -47,7 +72,7 @@ function App() {
     }
 
     coupons.forEach((coupon) => {
-      const status = getExpirationStatus(coupon.expiresAt)
+      const status = getCouponExpirationStatus(coupon)
       counts[status]++
     })
 
@@ -85,16 +110,6 @@ function App() {
     )
     toast.success('Coupon updated successfully!')
     setEditingCoupon(null)
-  }
-
-  const handleChatBotUpdate = (id: string, data: CouponFormData) => {
-    setCoupons((current) =>
-      (current || []).map((coupon) =>
-        coupon.id === id
-          ? { ...coupon, ...data, updatedAt: Date.now() }
-          : coupon
-      )
-    )
   }
 
   const handleDeleteCoupon = (id: string) => {
@@ -145,13 +160,6 @@ function App() {
             <h1 className="font-space text-2xl font-bold">Coupon Wallet</h1>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsChatBotOpen(true)}
-              className="w-10 h-10 rounded-full bg-accent text-accent-foreground flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-lg"
-              aria-label="Open AI assistant"
-            >
-              <Robot size={24} weight="bold" />
-            </button>
             <button
               onClick={() => setIsFormOpen(true)}
               className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-lg"
@@ -239,15 +247,6 @@ function App() {
         onOpenChange={setIsDetailsOpen}
         coupon={selectedCoupon}
         onEdit={handleEditClick}
-      />
-
-      <ChatBot
-        isOpen={isChatBotOpen}
-        onClose={() => setIsChatBotOpen(false)}
-        onAddCoupon={handleAddCoupon}
-        onUpdateCoupon={handleChatBotUpdate}
-        onDeleteCoupon={handleDeleteCoupon}
-        coupons={coupons || []}
       />
     </div>
   )

@@ -1,9 +1,8 @@
 import { motion } from 'framer-motion'
-import { Trash, Storefront, Tag, Clock, Warning, Ticket } from '@phosphor-icons/react'
+import { Trash, Storefront, Tag, Clock, Warning, Ticket, Stack } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import type { Coupon } from '@/lib/types'
-import { getExpirationStatus, formatExpirationDate } from '@/lib/utils'
+import { getCouponExpirationStatus, getExpirationStatus, formatExpirationDate } from '@/lib/utils'
 import { useState } from 'react'
 
 interface CouponCardProps {
@@ -14,7 +13,7 @@ interface CouponCardProps {
 
 export function CouponCard({ coupon, onClick, onDelete }: CouponCardProps) {
   const [isDeleting, setIsDeleting] = useState(false)
-  const expirationStatus = getExpirationStatus(coupon.expiresAt)
+  const expirationStatus = getCouponExpirationStatus(coupon)
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -22,16 +21,9 @@ export function CouponCard({ coupon, onClick, onDelete }: CouponCardProps) {
     setTimeout(() => onDelete(), 200)
   }
 
-  const getStatusColor = () => {
-    switch (expirationStatus) {
-      case 'expired':
-        return 'bg-destructive/20 text-destructive border-destructive/30'
-      case 'expiring-soon':
-        return 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-      default:
-        return ''
-    }
-  }
+  const validVariants = coupon.variants.filter(v => getExpirationStatus(v.expiresAt) !== 'expired')
+  const expiringSoonVariants = coupon.variants.filter(v => getExpirationStatus(v.expiresAt) === 'expiring-soon')
+  const totalVariants = coupon.variants.length
 
   return (
     <motion.div
@@ -58,24 +50,32 @@ export function CouponCard({ coupon, onClick, onDelete }: CouponCardProps) {
               <Tag className="text-accent flex-shrink-0" size={16} weight="bold" />
               <p className="font-mono font-bold text-accent text-xl">{coupon.value}</p>
             </div>
-            {coupon.expiresAt && (
-              <div className="flex items-center gap-1.5 mt-2">
-                {expirationStatus === 'expired' ? (
-                  <Warning className="text-destructive flex-shrink-0" size={14} weight="bold" />
-                ) : (
-                  <Clock className={`flex-shrink-0 ${expirationStatus === 'expiring-soon' ? 'text-amber-400' : 'text-muted-foreground'}`} size={14} weight="bold" />
-                )}
-                <span className={`text-xs font-medium ${
-                  expirationStatus === 'expired' 
-                    ? 'text-destructive' 
-                    : expirationStatus === 'expiring-soon' 
-                    ? 'text-amber-400' 
-                    : 'text-muted-foreground'
-                }`}>
-                  {formatExpirationDate(coupon.expiresAt)}
+            
+            <div className="flex items-center gap-3 mt-3 flex-wrap">
+              <div className="flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-md">
+                <Stack className="text-primary flex-shrink-0" size={14} weight="bold" />
+                <span className="text-xs font-bold text-primary">
+                  {totalVariants} {totalVariants === 1 ? 'code' : 'codes'}
                 </span>
               </div>
-            )}
+              
+              {validVariants.length > 0 && (
+                <div className="flex items-center gap-1.5 bg-green-500/10 px-2.5 py-1 rounded-md">
+                  <span className="text-xs font-medium text-green-600">
+                    {validVariants.length} valid
+                  </span>
+                </div>
+              )}
+              
+              {expiringSoonVariants.length > 0 && (
+                <div className="flex items-center gap-1.5 bg-amber-500/10 px-2.5 py-1 rounded-md">
+                  <Warning className="text-amber-500 flex-shrink-0" size={12} weight="bold" />
+                  <span className="text-xs font-medium text-amber-600">
+                    {expiringSoonVariants.length} expiring soon
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
           <button
             onClick={handleDelete}
@@ -84,25 +84,11 @@ export function CouponCard({ coupon, onClick, onDelete }: CouponCardProps) {
             <Trash size={20} weight="bold" />
           </button>
         </div>
-        {(coupon.code || coupon.url) && (
-          <div className="mt-3 pt-3 border-t border-border space-y-1.5">
-            {coupon.code && (
-              <div className="flex items-center gap-1.5">
-                <Ticket className="text-muted-foreground flex-shrink-0" size={12} weight="bold" />
-                <p className="text-xs font-mono text-muted-foreground truncate">{coupon.code}</p>
-              </div>
-            )}
-            {coupon.url && (
-              <p className="text-xs text-muted-foreground truncate">{coupon.url}</p>
-            )}
-          </div>
+        {expirationStatus !== 'valid' && expirationStatus === 'expired' && (
+          <div className="absolute top-0 right-0 w-0 h-0 border-t-[40px] border-l-[40px] border-l-transparent border-t-destructive/40" />
         )}
-        {expirationStatus !== 'valid' && (
-          <div className={`absolute top-0 right-0 w-0 h-0 border-t-[40px] border-l-[40px] border-l-transparent ${
-            expirationStatus === 'expired' 
-              ? 'border-t-destructive/40' 
-              : 'border-t-amber-500/40'
-          }`} />
+        {expirationStatus === 'expiring-soon' && (
+          <div className="absolute top-0 right-0 w-0 h-0 border-t-[40px] border-l-[40px] border-l-transparent border-t-amber-500/40" />
         )}
       </Card>
     </motion.div>

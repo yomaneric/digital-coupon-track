@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { PencilSimple, LinkSimple, Storefront, Tag, Clock, Warning, Ticket, Copy } from '@phosphor-icons/react'
+import { PencilSimple, LinkSimple, Storefront, Tag, Clock, Warning, Ticket, Copy, Stack } from '@phosphor-icons/react'
 import type { Coupon } from '@/lib/types'
 import { getExpirationStatus, formatExpirationDate } from '@/lib/utils'
 import { QRCodeGenerator } from './QRCodeGenerator'
@@ -22,155 +22,176 @@ export function CouponDetailsDialog({
 }: CouponDetailsDialogProps) {
   if (!coupon) return null
 
-  const expirationStatus = getExpirationStatus(coupon.expiresAt)
-
-  const handleLinkClick = () => {
-    if (!coupon.url) return
-    
-    if (coupon.url.startsWith('http://') || coupon.url.startsWith('https://')) {
-      window.open(coupon.url, '_blank', 'noopener,noreferrer')
+  const handleLinkClick = (url: string) => {
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      window.open(url, '_blank', 'noopener,noreferrer')
     }
   }
 
-  const handleCopyCode = () => {
-    if (!coupon.code) return
-    navigator.clipboard.writeText(coupon.code)
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code)
     toast.success('Coupon code copied!')
   }
 
-  const isValidUrl = coupon.url && (coupon.url.startsWith('http://') || coupon.url.startsWith('https://'))
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="font-space text-2xl">Coupon Details</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-6 mt-4">
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                <Storefront size={16} weight="bold" />
-                <span className="font-medium">Merchant</span>
-              </div>
-              <p className="font-space text-xl font-semibold">{coupon.merchant}</p>
+        <div className="flex-1 overflow-y-auto pr-2 space-y-4 mt-2">
+          <div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+              <Storefront size={16} weight="bold" />
+              <span className="font-medium">Merchant</span>
+            </div>
+            <p className="font-space text-xl font-semibold">{coupon.merchant}</p>
+          </div>
+
+          <Separator />
+
+          <div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+              <Tag size={16} weight="bold" />
+              <span className="font-medium">Value</span>
+            </div>
+            <p className="font-mono text-2xl font-bold text-accent">{coupon.value}</p>
+          </div>
+
+          <Separator />
+
+          <div>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+              <Stack size={16} weight="bold" />
+              <span className="font-medium">Available Codes ({coupon.variants.length})</span>
             </div>
 
-            <Separator />
+            <div className="space-y-3">
+              {coupon.variants.map((variant, index) => {
+                const expirationStatus = getExpirationStatus(variant.expiresAt)
+                const isValidUrl = variant.url && (variant.url.startsWith('http://') || variant.url.startsWith('https://'))
 
-            <div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                <Tag size={16} weight="bold" />
-                <span className="font-medium">Value</span>
-              </div>
-              <p className="font-mono text-2xl font-bold text-accent">{coupon.value}</p>
-            </div>
+                return (
+                  <div
+                    key={variant.id}
+                    className={`p-3 border rounded-lg space-y-3 ${
+                      expirationStatus === 'expired'
+                        ? 'border-destructive/30 bg-destructive/5 opacity-60'
+                        : expirationStatus === 'expiring-soon'
+                        ? 'border-amber-500/30 bg-amber-500/5'
+                        : 'border-border bg-muted/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-muted-foreground">
+                        Code #{index + 1}
+                      </span>
+                      {variant.expiresAt && (
+                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium ${
+                          expirationStatus === 'expired'
+                            ? 'bg-destructive/20 text-destructive'
+                            : expirationStatus === 'expiring-soon'
+                            ? 'bg-amber-500/20 text-amber-600'
+                            : 'bg-green-500/20 text-green-600'
+                        }`}>
+                          {expirationStatus === 'expired' ? (
+                            <Warning size={12} weight="bold" />
+                          ) : (
+                            <Clock size={12} weight="bold" />
+                          )}
+                          <span>{formatExpirationDate(variant.expiresAt)}</span>
+                        </div>
+                      )}
+                    </div>
 
-            {coupon.expiresAt && (
-              <>
-                <Separator />
-                <div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                    {expirationStatus === 'expired' ? (
-                      <Warning size={16} weight="bold" />
-                    ) : (
-                      <Clock size={16} weight="bold" />
+                    {variant.code && (
+                      <div>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
+                          <Ticket size={12} weight="bold" />
+                          <span className="font-medium">Coupon Code</span>
+                        </div>
+                        <div className="flex items-center justify-between bg-background p-2.5 rounded-md border border-border">
+                          <p className="text-sm font-mono font-bold text-foreground">
+                            {variant.code}
+                          </p>
+                          <Button
+                            onClick={() => handleCopyCode(variant.code!)}
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                          >
+                            <Copy size={14} weight="bold" />
+                          </Button>
+                        </div>
+                      </div>
                     )}
-                    <span className="font-medium">Expiration</span>
-                  </div>
-                  <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg ${
-                    expirationStatus === 'expired'
-                      ? 'bg-destructive/20 text-destructive'
-                      : expirationStatus === 'expiring-soon'
-                      ? 'bg-amber-500/20 text-amber-400'
-                      : 'bg-muted text-foreground'
-                  }`}>
-                    <span className="font-medium text-base">
-                      {formatExpirationDate(coupon.expiresAt)}
-                    </span>
-                  </div>
-                  {expirationStatus === 'expired' && (
-                    <p className="text-xs text-destructive mt-2">
-                      This coupon has expired and may no longer be valid.
-                    </p>
-                  )}
-                  {expirationStatus === 'expiring-soon' && (
-                    <p className="text-xs text-amber-400 mt-2">
-                      Use this coupon soon before it expires!
-                    </p>
-                  )}
-                </div>
-              </>
-            )}
 
-            {coupon.code && (
-              <>
-                <Separator />
-                <div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                    <Ticket size={16} weight="bold" />
-                    <span className="font-medium">Coupon Code</span>
-                  </div>
-                  <div className="flex items-center justify-between bg-muted p-3 rounded-lg">
-                    <p className="text-base font-mono font-bold text-foreground">
-                      {coupon.code}
-                    </p>
-                    <Button
-                      onClick={handleCopyCode}
-                      variant="ghost"
-                      size="sm"
-                      className="flex-shrink-0"
-                    >
-                      <Copy size={18} weight="bold" />
-                    </Button>
-                  </div>
-                </div>
-              </>
-            )}
+                    {variant.url && (
+                      <div>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
+                          <LinkSimple size={12} weight="bold" />
+                          <span className="font-medium">URL</span>
+                        </div>
+                        <div className="bg-background p-2 rounded-md border border-border">
+                          <p className="text-xs font-mono break-all text-muted-foreground">
+                            {variant.url}
+                          </p>
+                        </div>
+                        {isValidUrl && (
+                          <Button
+                            onClick={() => handleLinkClick(variant.url!)}
+                            variant="outline"
+                            size="sm"
+                            className="w-full mt-2 h-7 text-xs"
+                          >
+                            <LinkSimple size={14} weight="bold" className="mr-1" />
+                            Open Link
+                          </Button>
+                        )}
+                      </div>
+                    )}
 
-            {coupon.url && (
-              <>
-                <Separator />
-                <div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                    <LinkSimple size={16} weight="bold" />
-                    <span className="font-medium">QR Code</span>
+                    {variant.url && (
+                      <div>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+                          <span className="font-medium">QR Code</span>
+                        </div>
+                        <div className="flex items-center justify-center bg-white p-3 rounded-md">
+                          <QRCodeGenerator value={variant.url} size={150} />
+                        </div>
+                      </div>
+                    )}
+
+                    {expirationStatus === 'expired' && (
+                      <p className="text-xs text-destructive font-medium">
+                        This code has expired and may no longer be valid.
+                      </p>
+                    )}
+                    {expirationStatus === 'expiring-soon' && (
+                      <p className="text-xs text-amber-600 font-medium">
+                        Use this code soon before it expires!
+                      </p>
+                    )}
                   </div>
-                  <div className="flex items-center justify-center bg-white p-4 rounded-lg">
-                    <QRCodeGenerator value={coupon.url} size={200} />
-                  </div>
-                  <p className="mt-3 text-xs font-mono break-all bg-muted p-3 rounded-lg text-muted-foreground">
-                    {coupon.url}
-                  </p>
-                  {isValidUrl && (
-                    <Button
-                      onClick={handleLinkClick}
-                      variant="outline"
-                      className="w-full mt-3"
-                    >
-                      <LinkSimple size={18} weight="bold" className="mr-2" />
-                      Open Link
-                    </Button>
-                  )}
-                </div>
-              </>
-            )}
+                )
+              })}
+            </div>
           </div>
+        </div>
 
-          <div className="flex gap-3 pt-2">
-            <Button
-              onClick={() => onOpenChange(false)}
-              variant="outline"
-              className="flex-1"
-            >
-              Close
-            </Button>
-            <Button onClick={onEdit} className="flex-1">
-              <PencilSimple size={18} weight="bold" className="mr-2" />
-              Edit
-            </Button>
-          </div>
+        <div className="flex gap-3 pt-4 border-t border-border mt-2">
+          <Button
+            onClick={() => onOpenChange(false)}
+            variant="outline"
+            className="flex-1"
+          >
+            Close
+          </Button>
+          <Button onClick={onEdit} className="flex-1">
+            <PencilSimple size={18} weight="bold" className="mr-2" />
+            Edit
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
