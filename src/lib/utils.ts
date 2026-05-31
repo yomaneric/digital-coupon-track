@@ -21,22 +21,10 @@ export function getExpirationStatus(expiresAt?: number): ExpirationStatus {
 export function formatExpirationDate(timestamp: number): string {
   const date = new Date(timestamp)
   const now = new Date()
-  const diffTime = timestamp - now.getTime()
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   
-  if (diffDays < 0) {
-    return 'Expired'
-  } else if (diffDays === 0) {
-    return 'Expires today'
-  } else if (diffDays === 1) {
-    return 'Expires tomorrow'
-  } else if (diffDays <= 7) {
-    return `Expires in ${diffDays} days`
-  } else {
-    return date.toLocaleDateString(undefined, { 
-      month: 'short', 
-      day: 'numeric', 
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
-    })
-  }
+  return date.toLocaleDateString(undefined, { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric'
+  })
 }
