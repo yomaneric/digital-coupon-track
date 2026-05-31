@@ -50,7 +50,7 @@ export function WalletOnboarding({ onWalletSelected }: WalletOnboardingProps) {
     }
 
     if (!isValidWalletCode(normalizedCode)) {
-      triggerError('Invalid wallet code format. Try WALLET-XXXX-XXXX')
+      triggerError('Invalid wallet code. Enter a 6-character alphanumeric code')
       return
     }
 
@@ -125,7 +125,7 @@ export function WalletOnboarding({ onWalletSelected }: WalletOnboardingProps) {
               id="join-wallet"
               value={joinCode}
               onChange={(e) => setJoinCode(e.target.value)}
-              placeholder="WALLET-XXXX-XXXX"
+              placeholder="ABC123"
               className="h-11 font-mono"
               autoComplete="off"
             />

@@ -247,7 +247,7 @@ function WalletCouponsApp({
     }
 
     if (!isValidWalletCode(normalizedCode)) {
-      triggerWalletError('Invalid wallet code format. Try WALLET-XXXX-XXXX')
+      triggerWalletError('Invalid wallet code. Enter a 6-character alphanumeric code')
       return
     }
 
@@ -417,7 +417,7 @@ function WalletCouponsApp({
                 id="switch-wallet-code"
                 value={joinWalletCode}
                 onChange={(e) => setJoinWalletCode(e.target.value)}
-                placeholder="WALLET-XXXX-XXXX"
+                placeholder="ABC123"
                 className="h-10 font-mono"
                 autoComplete="off"
               />
