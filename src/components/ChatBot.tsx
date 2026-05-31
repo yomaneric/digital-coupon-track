@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import { X, PaperPlaneRight, Robot, User } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { CouponFormData } from '@/lib/types'
 
@@ -48,12 +47,12 @@ export function ChatBot({
   ])
   const [input, setInput] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [messages])
 
@@ -80,7 +79,7 @@ export function ChatBot({
     addMessage('user', userInput)
 
     try {
-      const promptText = `You are a CLI-like assistant for a coupon management app. Analyze the user's request and generate a structured command.
+      const promptText = (window.spark.llmPrompt as any)`You are a CLI-like assistant for a coupon management app. Analyze the user's request and generate a structured command.
 
 Current coupons in the system:
 ${JSON.stringify(coupons, null, 2)}
@@ -88,23 +87,50 @@ ${JSON.stringify(coupons, null, 2)}
 User request: "${userInput}"
 
 Your task:
-1. Determine the action: create, update, delete, or list coupons
+1. Determine the action: create, create_batch, update, delete, or list coupons
 2. Extract parameters from the user's request
 3. If information is missing, respond with a question asking for the missing details
 4. Return a JSON response with this structure:
 
-For CREATE:
+For CREATE (single coupon):
 {
   "action": "create",
   "params": {
     "merchant": "string (required)",
     "value": "string (required)",
-    "code": "string (optional)",
-    "url": "string (optional)",
-    "expiresAt": "timestamp in milliseconds (optional)"
+    "variants": [
+      {
+        "code": "string (optional)",
+        "url": "string (optional)",
+        "expiresAt": "timestamp in milliseconds (optional)"
+      }
+    ]
   },
-  "missingFields": ["field1", "field2"], // if any required fields are missing
+  "missingFields": ["field1", "field2"],
   "message": "User-friendly message explaining what will be done or what's needed"
+}
+
+For CREATE_BATCH (multiple coupons with same merchant/value but different URLs/codes):
+{
+  "action": "create_batch",
+  "params": {
+    "merchant": "string (required)",
+    "value": "string (required)",
+    "variants": [
+      {
+        "code": "string (optional)",
+        "url": "string (optional)",
+        "expiresAt": "timestamp in milliseconds (optional)"
+      },
+      {
+        "code": "string (optional)",
+        "url": "string (optional)",
+        "expiresAt": "timestamp in milliseconds (optional)"
+      }
+    ]
+  },
+  "missingFields": [],
+  "message": "User-friendly message"
 }
 
 For UPDATE:
@@ -149,10 +175,12 @@ For HELP or UNCLEAR:
 }
 
 Important rules:
-- For dates, convert natural language (like "December 31, 2024" or "in 30 days") to timestamps
+- For dates, convert natural language (like "22 Nov 2026", "December 31, 2024" or "in 30 days") to timestamps in milliseconds
+- If user provides multiple URLs or codes for the same merchant, use "create_batch" action with multiple variants
 - If the user mentions a merchant name that exists, use that coupon's ID for updates/deletes
 - Be helpful and conversational but structured
-- Always return valid JSON`
+- Always return valid JSON
+- Extract ALL URLs from the user's input and put them in separate variant objects`
 
       const response = await window.spark.llm(promptText, 'gpt-4o', true)
       const parsed = JSON.parse(response)
@@ -180,7 +208,7 @@ Important rules:
           const couponData: CouponFormData = {
             merchant: command.params.merchant,
             value: command.params.value,
-            variants: [{
+            variants: command.params.variants || [{
               id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
               code: command.params.code,
               url: command.params.url,
@@ -193,6 +221,30 @@ Important rules:
             'assistant',
             command.message ||
               `✓ Successfully created coupon for ${command.params.merchant} with value ${command.params.value}!`
+          )
+          break
+        }
+
+        case 'create_batch': {
+          const variants = command.params.variants.map((v: any) => ({
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            code: v.code,
+            url: v.url,
+            expiresAt: v.expiresAt,
+            createdAt: Date.now(),
+          }))
+
+          const couponData: CouponFormData = {
+            merchant: command.params.merchant,
+            value: command.params.value,
+            variants: variants,
+          }
+          
+          onAddCoupon(couponData)
+          addMessage(
+            'assistant',
+            command.message ||
+              `✓ Successfully created ${variants.length} coupon variants for ${command.params.merchant}!`
           )
           break
         }
@@ -351,8 +403,8 @@ Important rules:
             </Button>
           </div>
 
-          <ScrollArea className="flex-1 p-4">
-            <div ref={scrollRef} className="space-y-4">
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="space-y-4">
               {messages.map((message) => (
                 <motion.div
                   key={message.id}
@@ -406,8 +458,9 @@ Important rules:
                   </div>
                 </motion.div>
               )}
+              <div ref={messagesEndRef} />
             </div>
-          </ScrollArea>
+          </div>
 
           <form onSubmit={handleSubmit} className="p-4 border-t border-border bg-background/50">
             <div className="flex gap-2">
