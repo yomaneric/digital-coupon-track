@@ -3,8 +3,11 @@ export interface Coupon {
   merchant: string
   value: string
   url: string
+  expiresAt?: number
   createdAt: number
   updatedAt: number
 }
 
 export type CouponFormData = Omit<Coupon, 'id' | 'createdAt' | 'updatedAt'>
+
+export type ExpirationStatus = 'valid' | 'expiring-soon' | 'expired'

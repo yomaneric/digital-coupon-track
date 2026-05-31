@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Storefront, Tag, Link } from '@phosphor-icons/react'
+import { Storefront, Tag, Link, Calendar } from '@phosphor-icons/react'
 import type { Coupon, CouponFormData } from '@/lib/types'
 
 interface CouponFormDialogProps {
@@ -25,6 +25,11 @@ export function CouponFormDialog({
   const [merchant, setMerchant] = useState(initialData?.merchant || '')
   const [value, setValue] = useState(initialData?.value || '')
   const [url, setUrl] = useState(initialData?.url || '')
+  const [expirationDate, setExpirationDate] = useState(
+    initialData?.expiresAt 
+      ? new Date(initialData.expiresAt).toISOString().split('T')[0]
+      : ''
+  )
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -32,13 +37,26 @@ export function CouponFormDialog({
     if (!merchant.trim() || !value.trim()) return
 
     setIsSubmitting(true)
-    onSubmit({ merchant: merchant.trim(), value: value.trim(), url: url.trim() })
+    const formData: CouponFormData = {
+      merchant: merchant.trim(),
+      value: value.trim(),
+      url: url.trim(),
+    }
+
+    if (expirationDate) {
+      const date = new Date(expirationDate)
+      date.setHours(23, 59, 59, 999)
+      formData.expiresAt = date.getTime()
+    }
+
+    onSubmit(formData)
     
     setTimeout(() => {
       setIsSubmitting(false)
       setMerchant('')
       setValue('')
       setUrl('')
+      setExpirationDate('')
       onOpenChange(false)
     }, 100)
   }
@@ -48,8 +66,17 @@ export function CouponFormDialog({
       setMerchant(initialData?.merchant || '')
       setValue(initialData?.value || '')
       setUrl(initialData?.url || '')
+      setExpirationDate(
+        initialData?.expiresAt 
+          ? new Date(initialData.expiresAt).toISOString().split('T')[0]
+          : ''
+      )
     }
     onOpenChange(newOpen)
+  }
+
+  const getTodayDate = () => {
+    return new Date().toISOString().split('T')[0]
   }
 
   return (
@@ -89,6 +116,24 @@ export function CouponFormDialog({
               required
               className="h-11 font-mono"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="expiration" className="text-sm font-medium flex items-center gap-2">
+              <Calendar size={16} weight="bold" className="text-muted-foreground" />
+              Expiration Date (Optional)
+            </Label>
+            <Input
+              id="expiration"
+              type="date"
+              value={expirationDate}
+              onChange={(e) => setExpirationDate(e.target.value)}
+              min={getTodayDate()}
+              className="h-11"
+            />
+            <p className="text-xs text-muted-foreground">
+              Set when this coupon expires to get reminders.
+            </p>
           </div>
 
           <div className="space-y-2">
