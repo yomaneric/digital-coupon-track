@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Trash, Storefront, Tag, Clock, Warning } from '@phosphor-icons/react'
+import { Trash, Storefront, Tag, Clock, Warning, Ticket } from '@phosphor-icons/react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { Coupon } from '@/lib/types'
@@ -84,9 +84,17 @@ export function CouponCard({ coupon, onClick, onDelete }: CouponCardProps) {
             <Trash size={20} weight="bold" />
           </button>
         </div>
-        {coupon.url && (
-          <div className="mt-3 pt-3 border-t border-border">
-            <p className="text-xs text-muted-foreground truncate">{coupon.url}</p>
+        {(coupon.code || coupon.url) && (
+          <div className="mt-3 pt-3 border-t border-border space-y-1.5">
+            {coupon.code && (
+              <div className="flex items-center gap-1.5">
+                <Ticket className="text-muted-foreground flex-shrink-0" size={12} weight="bold" />
+                <p className="text-xs font-mono text-muted-foreground truncate">{coupon.code}</p>
+              </div>
+            )}
+            {coupon.url && (
+              <p className="text-xs text-muted-foreground truncate">{coupon.url}</p>
+            )}
           </div>
         )}
         {expirationStatus !== 'valid' && (

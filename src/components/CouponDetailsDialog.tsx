@@ -1,10 +1,11 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { PencilSimple, LinkSimple, Storefront, Tag, Clock, Warning } from '@phosphor-icons/react'
+import { PencilSimple, LinkSimple, Storefront, Tag, Clock, Warning, Ticket, Copy } from '@phosphor-icons/react'
 import type { Coupon } from '@/lib/types'
 import { getExpirationStatus, formatExpirationDate } from '@/lib/utils'
 import { QRCodeGenerator } from './QRCodeGenerator'
+import { toast } from 'sonner'
 
 interface CouponDetailsDialogProps {
   open: boolean
@@ -29,6 +30,12 @@ export function CouponDetailsDialog({
     if (coupon.url.startsWith('http://') || coupon.url.startsWith('https://')) {
       window.open(coupon.url, '_blank', 'noopener,noreferrer')
     }
+  }
+
+  const handleCopyCode = () => {
+    if (!coupon.code) return
+    navigator.clipboard.writeText(coupon.code)
+    toast.success('Coupon code copied!')
   }
 
   const isValidUrl = coupon.url && (coupon.url.startsWith('http://') || coupon.url.startsWith('https://'))
@@ -97,18 +104,43 @@ export function CouponDetailsDialog({
               </>
             )}
 
+            {coupon.code && (
+              <>
+                <Separator />
+                <div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                    <Ticket size={16} weight="bold" />
+                    <span className="font-medium">Coupon Code</span>
+                  </div>
+                  <div className="flex items-center justify-between bg-muted p-3 rounded-lg">
+                    <p className="text-base font-mono font-bold text-foreground">
+                      {coupon.code}
+                    </p>
+                    <Button
+                      onClick={handleCopyCode}
+                      variant="ghost"
+                      size="sm"
+                      className="flex-shrink-0"
+                    >
+                      <Copy size={18} weight="bold" />
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+
             {coupon.url && (
               <>
                 <Separator />
                 <div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
                     <LinkSimple size={16} weight="bold" />
-                    <span className="font-medium">Coupon Code</span>
+                    <span className="font-medium">QR Code</span>
                   </div>
                   <div className="flex items-center justify-center bg-white p-4 rounded-lg">
                     <QRCodeGenerator value={coupon.url} size={200} />
                   </div>
-                  <p className="mt-3 text-sm font-mono break-all bg-muted p-3 rounded-lg">
+                  <p className="mt-3 text-xs font-mono break-all bg-muted p-3 rounded-lg text-muted-foreground">
                     {coupon.url}
                   </p>
                   {isValidUrl && (

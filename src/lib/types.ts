@@ -2,7 +2,8 @@ export interface Coupon {
   id: string
   merchant: string
   value: string
-  url: string
+  url?: string
+  code?: string
   expiresAt?: number
   createdAt: number
   updatedAt: number

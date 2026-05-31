@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Storefront, Tag, Link, Calendar } from '@phosphor-icons/react'
+import { Storefront, Tag, Link, Calendar, Ticket } from '@phosphor-icons/react'
 import type { Coupon, CouponFormData } from '@/lib/types'
 
 interface CouponFormDialogProps {
@@ -25,6 +25,7 @@ export function CouponFormDialog({
   const [merchant, setMerchant] = useState(initialData?.merchant || '')
   const [value, setValue] = useState(initialData?.value || '')
   const [url, setUrl] = useState(initialData?.url || '')
+  const [code, setCode] = useState(initialData?.code || '')
   const [expirationDate, setExpirationDate] = useState(
     initialData?.expiresAt 
       ? new Date(initialData.expiresAt).toISOString().split('T')[0]
@@ -40,7 +41,14 @@ export function CouponFormDialog({
     const formData: CouponFormData = {
       merchant: merchant.trim(),
       value: value.trim(),
-      url: url.trim(),
+    }
+
+    if (url.trim()) {
+      formData.url = url.trim()
+    }
+
+    if (code.trim()) {
+      formData.code = code.trim()
     }
 
     if (expirationDate) {
@@ -56,6 +64,7 @@ export function CouponFormDialog({
       setMerchant('')
       setValue('')
       setUrl('')
+      setCode('')
       setExpirationDate('')
       onOpenChange(false)
     }, 100)
@@ -66,6 +75,7 @@ export function CouponFormDialog({
       setMerchant(initialData?.merchant || '')
       setValue(initialData?.value || '')
       setUrl(initialData?.url || '')
+      setCode(initialData?.code || '')
       setExpirationDate(
         initialData?.expiresAt 
           ? new Date(initialData.expiresAt).toISOString().split('T')[0]
@@ -137,19 +147,36 @@ export function CouponFormDialog({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="code" className="text-sm font-medium flex items-center gap-2">
+              <Ticket size={16} weight="bold" className="text-muted-foreground" />
+              Coupon Code (Optional)
+            </Label>
+            <Input
+              id="code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              placeholder="e.g., SAVE20, PROMO2024"
+              className="h-11 font-mono"
+            />
+            <p className="text-xs text-muted-foreground">
+              Enter a coupon code if applicable.
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="url" className="text-sm font-medium flex items-center gap-2">
               <Link size={16} weight="bold" className="text-muted-foreground" />
-              Coupon Code / URL
+              URL (Optional)
             </Label>
             <Textarea
               id="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="e.g., https://example.com/coupon or PROMO2024"
+              placeholder="e.g., https://example.com/coupon"
               className="min-h-[80px] font-mono text-sm resize-none"
             />
             <p className="text-xs text-muted-foreground">
-              Enter a URL or coupon code. A QR code will be generated automatically.
+              Enter a URL to generate a QR code.
             </p>
           </div>
 
