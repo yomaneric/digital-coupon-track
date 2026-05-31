@@ -12,5 +12,5 @@ export function normalizeWalletCode(input: string): string {
 }
 
 export function isValidWalletCode(code: string): boolean {
-  return /^[A-Z0-9]{6}$/.test(code)
+  return /^[A-HJKMNPQRSTUVWXYZ2-9]{6}$/.test(code)
 }
