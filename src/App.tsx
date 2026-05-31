@@ -22,22 +22,42 @@ function App() {
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null)
   const [filter, setFilter] = useState<FilterType>('all')
 
+  const filteredCoupons = useMemo(() => {
+    if (!coupons || coupons.length === 0) return []
+    if (filter === 'all') return coupons
+
+    return coupons.filter((coupon) => {
+      const status = getExpirationStatus(coupon.expiresAt)
+      return status === filter
+    })
+  }, [coupons, filter])
+
+  const getCounts = useMemo(() => {
+    if (!coupons || coupons.length === 0) {
+      return { all: 0, valid: 0, 'expiring-soon': 0, expired: 0 }
+    }
+
+    const counts = {
+      all: coupons.length,
+      valid: 0,
+      'expiring-soon': 0,
+      expired: 0,
+    }
+
+    coupons.forEach((coupon) => {
+      const status = getExpirationStatus(coupon.expiresAt)
+      counts[status]++
+    })
+
+    return counts
+  }, [coupons])
+
   const handleSetPasscode = (newPasscode: string) => {
     setPasscode(newPasscode)
   }
 
   const handleUnlock = () => {
     setIsUnlocked(true)
-  }
-
-  if (!isUnlocked) {
-    return (
-      <PasscodeScreen
-        onUnlock={handleUnlock}
-        storedPasscode={passcode ?? null}
-        onSetPasscode={handleSetPasscode}
-      />
-    )
   }
 
   const handleAddCoupon = (data: CouponFormData) => {
@@ -90,35 +110,15 @@ function App() {
     }, 200)
   }
 
-  const filteredCoupons = useMemo(() => {
-    if (!coupons || coupons.length === 0) return []
-    if (filter === 'all') return coupons
-
-    return coupons.filter((coupon) => {
-      const status = getExpirationStatus(coupon.expiresAt)
-      return status === filter
-    })
-  }, [coupons, filter])
-
-  const getCounts = useMemo(() => {
-    if (!coupons || coupons.length === 0) {
-      return { all: 0, valid: 0, 'expiring-soon': 0, expired: 0 }
-    }
-
-    const counts = {
-      all: coupons.length,
-      valid: 0,
-      'expiring-soon': 0,
-      expired: 0,
-    }
-
-    coupons.forEach((coupon) => {
-      const status = getExpirationStatus(coupon.expiresAt)
-      counts[status]++
-    })
-
-    return counts
-  }, [coupons])
+  if (!isUnlocked) {
+    return (
+      <PasscodeScreen
+        onUnlock={handleUnlock}
+        storedPasscode={passcode ?? null}
+        onSetPasscode={handleSetPasscode}
+      />
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
