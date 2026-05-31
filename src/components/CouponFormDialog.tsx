@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,16 +22,32 @@ export function CouponFormDialog({
   initialData,
   isEdit = false,
 }: CouponFormDialogProps) {
-  const [merchant, setMerchant] = useState(initialData?.merchant || '')
-  const [value, setValue] = useState(initialData?.value || '')
-  const [url, setUrl] = useState(initialData?.url || '')
-  const [code, setCode] = useState(initialData?.code || '')
-  const [expirationDate, setExpirationDate] = useState(
-    initialData?.expiresAt 
-      ? new Date(initialData.expiresAt).toISOString().split('T')[0]
-      : ''
-  )
+  const [merchant, setMerchant] = useState('')
+  const [value, setValue] = useState('')
+  const [url, setUrl] = useState('')
+  const [code, setCode] = useState('')
+  const [expirationDate, setExpirationDate] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (open && initialData) {
+      setMerchant(initialData.merchant || '')
+      setValue(initialData.value || '')
+      setUrl(initialData.url || '')
+      setCode(initialData.code || '')
+      setExpirationDate(
+        initialData.expiresAt 
+          ? new Date(initialData.expiresAt).toISOString().split('T')[0]
+          : ''
+      )
+    } else if (open && !initialData) {
+      setMerchant('')
+      setValue('')
+      setUrl('')
+      setCode('')
+      setExpirationDate('')
+    }
+  }, [open, initialData])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,17 +87,6 @@ export function CouponFormDialog({
   }
 
   const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen && !isSubmitting) {
-      setMerchant(initialData?.merchant || '')
-      setValue(initialData?.value || '')
-      setUrl(initialData?.url || '')
-      setCode(initialData?.code || '')
-      setExpirationDate(
-        initialData?.expiresAt 
-          ? new Date(initialData.expiresAt).toISOString().split('T')[0]
-          : ''
-      )
-    }
     onOpenChange(newOpen)
   }
 
