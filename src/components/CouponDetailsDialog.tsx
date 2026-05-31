@@ -4,7 +4,6 @@ import { Separator } from '@/components/ui/separator'
 import { PencilSimple, LinkSimple, Storefront, Tag, Clock, Warning, Ticket, Copy, Stack } from '@phosphor-icons/react'
 import type { Coupon } from '@/lib/types'
 import { getExpirationStatus, formatExpirationDate } from '@/lib/utils'
-import { QRCodeGenerator } from './QRCodeGenerator'
 import { toast } from 'sonner'
 
 interface CouponDetailsDialogProps {
@@ -149,17 +148,6 @@ export function CouponDetailsDialog({
                             Open Link
                           </Button>
                         )}
-                      </div>
-                    )}
-
-                    {variant.url && (
-                      <div>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                          <span className="font-medium">QR Code</span>
-                        </div>
-                        <div className="flex items-center justify-center bg-white p-3 rounded-md">
-                          <QRCodeGenerator value={variant.url} size={150} />
-                        </div>
                       </div>
                     )}
 
