@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useKV } from '@github/spark/hooks'
-import { Plus, Wallet } from '@phosphor-icons/react'
+import { Plus, Wallet, Robot } from '@phosphor-icons/react'
 import { Toaster, toast } from 'sonner'
 import type { Coupon, CouponFormData, ExpirationStatus } from '@/lib/types'
 import { CouponCard } from '@/components/CouponCard'
@@ -8,6 +8,7 @@ import { CouponFormDialog } from '@/components/CouponFormDialog'
 import { CouponDetailsDialog } from '@/components/CouponDetailsDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { PasscodeScreen } from '@/components/PasscodeScreen'
+import { ChatBot } from '@/components/ChatBot'
 import { getExpirationStatus } from '@/lib/utils'
 
 type FilterType = 'all' | ExpirationStatus
@@ -21,6 +22,7 @@ function App() {
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null)
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null)
   const [filter, setFilter] = useState<FilterType>('all')
+  const [isChatBotOpen, setIsChatBotOpen] = useState(false)
 
   const filteredCoupons = useMemo(() => {
     if (!coupons || coupons.length === 0) return []
@@ -85,6 +87,16 @@ function App() {
     setEditingCoupon(null)
   }
 
+  const handleChatBotUpdate = (id: string, data: CouponFormData) => {
+    setCoupons((current) =>
+      (current || []).map((coupon) =>
+        coupon.id === id
+          ? { ...coupon, ...data, updatedAt: Date.now() }
+          : coupon
+      )
+    )
+  }
+
   const handleDeleteCoupon = (id: string) => {
     setCoupons((current) => (current || []).filter((coupon) => coupon.id !== id))
     toast.success('Coupon deleted')
@@ -132,13 +144,22 @@ function App() {
             </div>
             <h1 className="font-space text-2xl font-bold">Coupon Wallet</h1>
           </div>
-          <button
-            onClick={() => setIsFormOpen(true)}
-            className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-lg"
-            aria-label="Add coupon"
-          >
-            <Plus size={24} weight="bold" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsChatBotOpen(true)}
+              className="w-10 h-10 rounded-full bg-accent text-accent-foreground flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-lg"
+              aria-label="Open AI assistant"
+            >
+              <Robot size={24} weight="bold" />
+            </button>
+            <button
+              onClick={() => setIsFormOpen(true)}
+              className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-lg"
+              aria-label="Add coupon"
+            >
+              <Plus size={24} weight="bold" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -218,6 +239,15 @@ function App() {
         onOpenChange={setIsDetailsOpen}
         coupon={selectedCoupon}
         onEdit={handleEditClick}
+      />
+
+      <ChatBot
+        isOpen={isChatBotOpen}
+        onClose={() => setIsChatBotOpen(false)}
+        onAddCoupon={handleAddCoupon}
+        onUpdateCoupon={handleChatBotUpdate}
+        onDeleteCoupon={handleDeleteCoupon}
+        coupons={coupons || []}
       />
     </div>
   )

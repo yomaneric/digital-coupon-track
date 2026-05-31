@@ -12,6 +12,13 @@ This is a straightforward CRUD application with persistent storage, but includes
 
 ## Essential Features
 
+### AI Chatbot Assistant
+- **Functionality**: CLI-powered chatbot that understands natural language commands to create, update, delete, and list coupons using AI
+- **Purpose**: Provide a conversational, effortless way to manage coupons without manually filling forms - like having GitHub Copilot CLI for coupon management
+- **Trigger**: Tap robot icon in header to open chat overlay
+- **Progression**: Tap robot icon → Chat overlay appears → Type natural language command (e.g., "Add a coupon for Target with 25% off") → AI analyzes request → If missing info, asks follow-up questions → Executes command → Confirms action in chat
+- **Success criteria**: AI correctly interprets user intent, asks clarifying questions when needed, executes CRUD operations accurately, provides friendly confirmations, maintains conversation context
+
 ### Passcode Protection
 - **Functionality**: Requires users to set and enter a passcode before accessing their coupon wallet
 - **Purpose**: Protect sensitive coupon codes and personal discount information from unauthorized access
@@ -56,6 +63,10 @@ This is a straightforward CRUD application with persistent storage, but includes
 
 ## Edge Case Handling
 
+- **Chatbot Ambiguity** - If AI cannot understand command, provides helpful examples and asks user to rephrase; suggests common commands like "list my coupons" or "delete Amazon coupon"
+- **Chatbot Missing Information** - AI asks follow-up questions for required fields (merchant, value) before executing create commands
+- **Chatbot Merchant Matching** - When updating/deleting by merchant name, AI finds closest match from existing coupons; if multiple matches or no match found, lists options for user to clarify
+- **Chatbot Date Parsing** - Converts natural language dates ("December 31", "in 30 days", "next month") to timestamps for expiration dates
 - **Forgotten Passcode** - Show warning during setup that there is no recovery option; passcode is stored locally and cannot be reset without losing data
 - **Empty State** - Show welcoming illustration and clear "Add your first coupon" prompt when no coupons exist
 - **Invalid URLs** - Accept any text input; generate QR code from whatever is provided (could be a code, not just URL)
@@ -126,6 +137,8 @@ Animations should reinforce the tactile, card-based nature of the interface whil
   - Inputs: Focused (purple border + subtle glow), Error (red border with shake animation), Valid (lime accent)
   - Date Input: Standard browser date picker with minimum date constraint
 - **Icon Selection**:
+  - AI Assistant: Robot icon for chatbot button and chat messages
+  - User: User icon for user messages in chat
   - Security: Lock for locked state, LockKey for setup
   - Add: Plus (bold weight) on floating action button
   - Edit: PencilSimple for edit actions
@@ -136,6 +149,7 @@ Animations should reinforce the tactile, card-based nature of the interface whil
   - Tag: Tag or Percent for coupon value field
   - Expiration: Clock for valid/expiring dates, Warning for expired coupons
   - Calendar: Calendar icon for expiration date field
+  - Send: PaperPlaneRight for chat message submission
 - **Spacing**:
   - Container padding: p-4 (16px) for mobile screens
   - Card spacing: gap-3 (12px) between cards in list
