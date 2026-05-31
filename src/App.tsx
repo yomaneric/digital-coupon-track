@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useKV } from '@github/spark/hooks'
-import { Plus, Wallet, Robot, Copy, ArrowsClockwise, SignOut } from '@phosphor-icons/react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Plus, Wallet, Robot, Copy, ArrowsClockwise, SignOut, CircleNotch, WarningCircle } from '@phosphor-icons/react'
 import { Toaster, toast } from 'sonner'
 import type { Coupon, CouponFormData, ExpirationStatus } from '@/lib/types'
 import { CouponCard } from '@/components/CouponCard'
@@ -14,6 +15,8 @@ import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { getCouponExpirationStatus } from '@/lib/utils'
 import { generateWalletCode, isValidWalletCode, normalizeWalletCode } from '@/lib/wallet'
+import { fetchCoupons, saveCoupons } from '@/lib/api'
+import { readLegacyLocalCoupons } from '@/lib/legacyMigration'
 
 type FilterType = 'all' | ExpirationStatus
 
@@ -36,8 +39,43 @@ function WalletCouponsApp({
   onWalletManagerMounted,
   onLeaveWallet,
 }: WalletCouponsAppProps) {
-  // Spark useKV is user-scoped; wallet codes namespace coupon sets within that scope.
-  const [coupons, setCoupons] = useKV<Coupon[]>(`coupons-${activeWalletCode}`, [])
+  // Coupons live in the shared backend (see src/lib/api.ts), keyed by wallet
+  // code, so the same code resolves to the same coupons on every device.
+  const queryClient = useQueryClient()
+  const couponsQueryKey = useMemo(() => ['coupons', activeWalletCode] as const, [activeWalletCode])
+
+  const {
+    data: coupons,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: couponsQueryKey,
+    queryFn: () => fetchCoupons(activeWalletCode),
+  })
+
+  const persistMutation = useMutation({
+    mutationFn: (next: Coupon[]) => saveCoupons(activeWalletCode, next),
+  })
+
+  // Apply an update to the coupon set with optimistic UI: update the cache
+  // immediately, persist to the backend, and roll back if the save fails.
+  const persistCoupons = useCallback(
+    (updater: (current: Coupon[]) => Coupon[]): Coupon[] => {
+      const previous = queryClient.getQueryData<Coupon[]>(couponsQueryKey) ?? []
+      const next = updater(previous)
+      queryClient.setQueryData(couponsQueryKey, next)
+      persistMutation.mutate(next, {
+        onError: () => {
+          queryClient.setQueryData(couponsQueryKey, previous)
+          toast.error('Could not save changes. Please check your connection and try again.')
+        },
+      })
+      return next
+    },
+    [couponsQueryKey, persistMutation, queryClient],
+  )
+
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null)
@@ -48,6 +86,7 @@ function WalletCouponsApp({
   const [joinWalletCode, setJoinWalletCode] = useState('')
   const [walletError, setWalletError] = useState('')
   const [isWalletShaking, setIsWalletShaking] = useState(false)
+  const [hasCheckedLocalImport, setHasCheckedLocalImport] = useState(false)
 
   useEffect(() => {
     if (openWalletManagerOnMount) {
@@ -56,32 +95,69 @@ function WalletCouponsApp({
     }
   }, [openWalletManagerOnMount, onWalletManagerMounted])
 
+  // One-time, best-effort import of coupons that previously lived only in this
+  // device's browser storage, so an existing wallet isn't shown as empty after
+  // moving to the shared backend.
   useEffect(() => {
-    if (coupons && coupons.length > 0) {
-      const needsMigration = coupons.some((c: any) => !c.variants)
-      if (needsMigration) {
-        const migratedCoupons = coupons.map((c: any) => {
-          if (c.variants) return c
-
-          return {
-            id: c.id,
-            merchant: c.merchant,
-            value: c.value,
-            variants: [{
-              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-              code: c.code,
-              url: c.url,
-              expiresAt: c.expiresAt,
-              createdAt: c.createdAt || Date.now(),
-            }],
-            createdAt: c.createdAt || Date.now(),
-            updatedAt: c.updatedAt || Date.now(),
-          }
-        })
-        setCoupons(migratedCoupons)
-      }
+    if (isLoading || isError || hasCheckedLocalImport) return
+    if (!coupons) return
+    if (coupons.length > 0) {
+      setHasCheckedLocalImport(true)
+      return
     }
-  }, [coupons, setCoupons])
+
+    const flagKey = `coupon-import-${activeWalletCode}`
+    try {
+      if (window.localStorage.getItem(flagKey)) {
+        setHasCheckedLocalImport(true)
+        return
+      }
+    } catch {
+      setHasCheckedLocalImport(true)
+      return
+    }
+
+    const legacy = readLegacyLocalCoupons(activeWalletCode)
+    if (legacy && legacy.length > 0) {
+      persistCoupons(() => legacy)
+      toast.success(`Imported ${legacy.length} coupon${legacy.length === 1 ? '' : 's'} from this device`)
+    }
+
+    try {
+      window.localStorage.setItem(flagKey, '1')
+    } catch {
+      // Ignore storage write failures; the import simply may run again later.
+    }
+    setHasCheckedLocalImport(true)
+  }, [coupons, isLoading, isError, hasCheckedLocalImport, activeWalletCode, persistCoupons])
+
+  // Upgrade any legacy coupons (saved before the multi-variant model) in place.
+  useEffect(() => {
+    if (!coupons || coupons.length === 0) return
+    const needsMigration = coupons.some((c: any) => !c.variants)
+    if (!needsMigration) return
+
+    persistCoupons((current) =>
+      current.map((c: any) => {
+        if (c.variants) return c
+
+        return {
+          id: c.id,
+          merchant: c.merchant,
+          value: c.value,
+          variants: [{
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            code: c.code,
+            url: c.url,
+            expiresAt: c.expiresAt,
+            createdAt: c.createdAt || Date.now(),
+          }],
+          createdAt: c.createdAt || Date.now(),
+          updatedAt: c.updatedAt || Date.now(),
+        }
+      })
+    )
+  }, [coupons, persistCoupons])
 
   const filteredCoupons = useMemo(() => {
     if (!coupons || coupons.length === 0) return []
@@ -120,15 +196,15 @@ function WalletCouponsApp({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }
-    setCoupons((current) => [newCoupon, ...(current || [])])
+    persistCoupons((current) => [newCoupon, ...current])
     toast.success('Coupon added successfully!')
   }
 
   const handleUpdateCoupon = (data: CouponFormData) => {
     if (!editingCoupon) return
 
-    setCoupons((current) =>
-      (current || []).map((coupon) =>
+    persistCoupons((current) =>
+      current.map((coupon) =>
         coupon.id === editingCoupon.id
           ? { ...coupon, ...data, updatedAt: Date.now() }
           : coupon
@@ -139,13 +215,13 @@ function WalletCouponsApp({
   }
 
   const handleDeleteCoupon = (id: string) => {
-    setCoupons((current) => (current || []).filter((coupon) => coupon.id !== id))
+    persistCoupons((current) => current.filter((coupon) => coupon.id !== id))
     toast.success('Coupon deleted')
   }
 
   const handleToggleUsed = (couponId: string, variantId: string) => {
-    setCoupons((current) => {
-      const updated = (current || []).map((coupon) =>
+    const updated = persistCoupons((current) =>
+      current.map((coupon) =>
         coupon.id === couponId
           ? {
             ...coupon,
@@ -162,16 +238,14 @@ function WalletCouponsApp({
           }
           : coupon
       )
+    )
 
-      if (selectedCoupon?.id === couponId) {
-        const updatedCoupon = updated.find((c) => c.id === couponId)
-        if (updatedCoupon) {
-          setSelectedCoupon(updatedCoupon)
-        }
+    if (selectedCoupon?.id === couponId) {
+      const updatedCoupon = updated.find((c) => c.id === couponId)
+      if (updatedCoupon) {
+        setSelectedCoupon(updatedCoupon)
       }
-
-      return updated
-    })
+    }
   }
 
   const handleChatBotAddCoupon = (data: CouponFormData) => {
@@ -179,8 +253,8 @@ function WalletCouponsApp({
   }
 
   const handleChatBotUpdateCoupon = (id: string, data: CouponFormData) => {
-    setCoupons((current) =>
-      (current || []).map((coupon) =>
+    persistCoupons((current) =>
+      current.map((coupon) =>
         coupon.id === id
           ? { ...coupon, ...data, updatedAt: Date.now() }
           : coupon
@@ -293,7 +367,23 @@ function WalletCouponsApp({
       </header>
 
       <main className="max-w-2xl mx-auto pb-6">
-        {!coupons || coupons.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 gap-3">
+            <CircleNotch size={32} weight="bold" className="text-primary animate-spin" />
+            <p className="text-muted-foreground text-center">Loading your coupons…</p>
+          </div>
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 gap-3">
+            <WarningCircle size={32} weight="bold" className="text-destructive" />
+            <p className="text-muted-foreground text-center">
+              Couldn’t load your coupons. Please check your connection.
+            </p>
+            <Button type="button" variant="secondary" onClick={() => refetch()}>
+              <ArrowsClockwise size={18} weight="bold" className="mr-2" />
+              Try again
+            </Button>
+          </div>
+        ) : !coupons || coupons.length === 0 ? (
           <EmptyState onAddClick={() => setIsFormOpen(true)} />
         ) : (
           <>

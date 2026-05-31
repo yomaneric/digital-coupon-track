@@ -25,6 +25,7 @@ This is a straightforward CRUD application with persistent storage, but includes
 - **Trigger**: First app load (no active wallet selected) or when user switches wallets from wallet controls
 - **Progression**: Open app → Wallet onboarding appears → Create new wallet (code generated) or join existing wallet (enter shared code) → Wallet code becomes active → Coupon list loads for that wallet namespace
 - **Success criteria**: Wallet code persists as active selection, join input validates format with friendly errors, copy/share flow is discoverable, switching wallet updates coupon namespace immediately
+- **Persistence model**: Coupons are stored in a shared backend (Azure Functions + Azure Table Storage, see `api/`) keyed by wallet code — **not** in per-device browser storage — so the same wallet code resolves to the same coupons on every device. The active wallet selection itself is kept per-device. See the README for backend configuration.
 
 ### Add New Coupon
 - **Functionality**: Creates a new coupon entry with merchant name, value/discount, URL/QR code, and optional expiration date
